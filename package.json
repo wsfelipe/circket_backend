@@ -1,0 +1,31 @@
+{
+  "name": "cricket-game",
+  "version": "0.1.0",
+  "description": "Cricket - Jogo multiplayer de dados inspirado em Cricket de bar",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc --project tsconfig.json",
+    "start": "node dist/src/server.js",
+    "client": "tsx watch client.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "cricket",
+    "game",
+    "websocket",
+    "multiplayer",
+    "dice"
+  ],
+  "author": "Felipe Wiebke Schons",
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "@types/ws": "^8.18.1",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  },
+  "dependencies": {
+    "ws": "^8.21.3"
+  }
+}

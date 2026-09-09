@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Cricket Test</title>
+    <style>
+      :root {
+        --bg: #0f172a;
+        --panel: #111827;
+        --panel-2: #1f2937;
+        --text: #e5e7eb;
+        --muted: #9ca3af;
+        --accent: #22c55e;
+        --danger: #ef4444;
+        --warning: #f59e0b;
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        margin: 0;
+        font-family: Arial, Helvetica, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        padding: 24px;
+      }
+
+      .container {
+        max-width: 980px;
+        margin: 0 auto;
+      }
+
+      .panel {
+        background: var(--panel);
+        border: 1px solid #334155;
+        border-radius: 12px;
+        padding: 18px;
+        margin-bottom: 16px;
+      }
+
+      h1 {
+        margin: 0 0 8px;
+        font-size: 28px;
+      }
+
+      .row {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin-bottom: 12px;
+      }
+
+      input, select, button {
+        border-radius: 8px;
+        border: 1px solid #475569;
+        padding: 10px 12px;
+        font-size: 14px;
+      }
+
+      input, select {
+        background: var(--panel-2);
+        color: var(--text);
+      }
+
+      button {
+        background: var(--accent);
+        color: #06230d;
+        border: none;
+        font-weight: bold;
+        cursor: pointer;
+      }
+
+      button.secondary {
+        background: #3b82f6;
+        color: white;
+      }
+
+      button.danger {
+        background: var(--danger);
+        color: white;
+      }
+
+      .status {
+        color: var(--muted);
+        margin-bottom: 12px;
+      }
+
+      .status.connected {
+        color: var(--accent);
+      }
+
+      .status.error {
+        color: var(--danger);
+      }
+
+      textarea {
+        width: 100%;
+        min-height: 260px;
+        resize: vertical;
+        background: #020817;
+        color: #dbeafe;
+        border: 1px solid #334155;
+        border-radius: 10px;
+        padding: 12px;
+        font-family: Consolas, monospace;
+        font-size: 13px;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 16px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="panel">
+        <h1>Cricket Test</h1>
+        <div id="status" class="status">Desconectado</div>
+
+        <div class="grid">
+          <div>
+            <label for="playerName">Nome</label>
+            <input id="playerName" type="text" value="Alice" />
+          </div>
+          <div>
+            <label for="roomCode">Código da sala</label>
+            <input id="roomCode" type="text" placeholder="ABC123" />
+          </div>
+        </div>
+
+        <div class="row">
+          <button id="connectBtn">Conectar</button>
+          <button id="createBtn" class="secondary">Criar sala</button>
+          <button id="joinBtn" class="secondary">Entrar na sala</button>
+          <button id="startBtn" class="secondary">Iniciar jogo</button>
+          <button id="rollBtn" class="secondary">Rolar dados</button>
+          <button id="leaveBtn" class="danger">Sair</button>
+        </div>
+
+        <div class="grid">
+          <div>
+            <label for="announcement">Anúncio</label>
+            <select id="announcement">
+              <option value="4">4</option>
+              <option value="5">5</option>
+              <option value="6">6</option>
+              <option value="7">7</option>
+              <option value="8">8</option>
+              <option value="9">9</option>
+              <option value="10">10</option>
+              <option value="11">11</option>
+              <option value="pair_1">pair_1</option>
+              <option value="pair_2">pair_2</option>
+              <option value="pair_3" selected>pair_3</option>
+              <option value="pair_4">pair_4</option>
+              <option value="pair_5">pair_5</option>
+              <option value="pair_6">pair_6</option>
+              <option value="cricket">cricket</option>
+            </select>
+          </div>
+          <div>
+            <label for="challengeType">Desafio</label>
+            <select id="challengeType">
+              <option value="CALL_BLUFF">CALL_BLUFF</option>
+              <option value="BUY">BUY</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="row">
+          <button id="announceBtn" class="secondary">Enviar anúncio</button>
+          <button id="challengeBtn" class="secondary">Enviar desafio</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>Log do servidor</h2>
+        <textarea id="log" readonly></textarea>
+      </div>
+    </div>
+
+    <script>
+      const statusEl = document.getElementById('status');
+      const logEl = document.getElementById('log');
+      const roomCodeEl = document.getElementById('roomCode');
+      const playerNameEl = document.getElementById('playerName');
+
+      let socket = null;
+      let currentRoomCode = '';
+
+      function appendLog(message) {
+        const now = new Date().toLocaleTimeString();
+        logEl.value += `[${now}] ${message}\n`;
+        logEl.scrollTop = logEl.scrollHeight;
+      }
+
+      function setStatus(text, type = '') {
+        statusEl.textContent = text;
+        statusEl.className = 'status';
+        if (type) statusEl.classList.add(type);
+      }
+
+      function connect() {
+        if (socket && socket.readyState === WebSocket.OPEN) {
+          appendLog('Já conectado.');
+          return;
+        }
+
+        socket = new WebSocket('ws://localhost:8080');
+
+        socket.onopen = () => {
+          appendLog('Conectado ao servidor');
+          setStatus('Conectado', 'connected');
+        };
+
+        socket.onmessage = (event) => {
+          const message = JSON.parse(event.data);
+          appendLog('Recebido: ' + JSON.stringify(message, null, 2));
+
+          if (message.roomCode) {
+            currentRoomCode = message.roomCode;
+            roomCodeEl.value = message.roomCode;
+          }
+
+          if (message.type === 'ROOM_CREATED' || message.type === 'ROOM_JOINED') {
+            currentRoomCode = message.roomState?.code || currentRoomCode;
+            roomCodeEl.value = currentRoomCode;
+          }
+        };
+
+        socket.onerror = () => {
+          appendLog('Erro de conexão com o WebSocket');
+          setStatus('Erro de conexão', 'error');
+        };
+
+        socket.onclose = () => {
+          appendLog('Conexão fechada');
+          setStatus('Desconectado');
+        };
+      }
+
+      function send(message) {
+        if (!socket || socket.readyState !== WebSocket.OPEN) {
+          appendLog('Conecte primeiro.');
+          setStatus('Erro de conexão', 'error');
+          return;
+        }
+
+        appendLog('Enviado: ' + JSON.stringify(message, null, 2));
+        socket.send(JSON.stringify(message));
+      }
+
+      document.getElementById('connectBtn').addEventListener('click', connect);
+
+      document.getElementById('createBtn').addEventListener('click', () => {
+        send({
+          type: 'CREATE_ROOM',
+          playerName: playerNameEl.value || 'Alice'
+        });
+      });
+
+      document.getElementById('joinBtn').addEventListener('click', () => {
+        send({
+          type: 'JOIN_ROOM',
+          roomCode: roomCodeEl.value,
+          playerName: playerNameEl.value || 'Bob'
+        });
+      });
+
+      document.getElementById('startBtn').addEventListener('click', () => {
+        send({
+          type: 'START_GAME',
+          roomCode: roomCodeEl.value || currentRoomCode
+        });
+      });
+
+      document.getElementById('rollBtn').addEventListener('click', () => {
+        send({
+          type: 'ROLL_DICE',
+          roomCode: roomCodeEl.value || currentRoomCode
+        });
+      });
+
+      document.getElementById('announceBtn').addEventListener('click', () => {
+        send({
+          type: 'ANNOUNCE',
+          roomCode: roomCodeEl.value || currentRoomCode,
+          announcement: document.getElementById('announcement').value
+        });
+      });
+
+      document.getElementById('challengeBtn').addEventListener('click', () => {
+        send({
+          type: 'CHALLENGE',
+          roomCode: roomCodeEl.value || currentRoomCode,
+          challengeType: document.getElementById('challengeType').value
+        });
+      });
+
+      document.getElementById('leaveBtn').addEventListener('click', () => {
+        send({
+          type: 'LEAVE_ROOM',
+          roomCode: roomCodeEl.value || currentRoomCode
+        });
+      });
+    </script>
+  </body>
+</html>
