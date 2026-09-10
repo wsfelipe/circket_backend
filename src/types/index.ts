@@ -29,6 +29,7 @@ export interface Player {
   lives: number;
   isActive: boolean;
   isCurrentPlayer: boolean;
+  ready: boolean;
 }
 
 // Estado da sala
@@ -50,6 +51,7 @@ export type ClientMessage =
   | { type: 'CREATE_ROOM'; playerName: string }
   | { type: 'JOIN_ROOM'; roomCode: string; playerName: string }
   | { type: 'LEAVE_ROOM'; roomCode: string }
+  | { type: 'TOGGLE_READY'; roomCode: string }
   | { type: 'ROLL_DICE'; roomCode: string }
   | { type: 'ANNOUNCE'; roomCode: string; announcement: string }
   | { type: 'CHALLENGE'; roomCode: string; challengeType: 'CALL_BLUFF' | 'BUY' }

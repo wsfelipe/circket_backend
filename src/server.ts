@@ -173,8 +173,9 @@ function handleChallenge(room: Room, currentPlayer: Player): void {
   room.gamePhase = 'rolling';
   room.round += 1;
 
-  if (loser.lives <= 0) {
-    room.winner = winner.name;
+  const activePlayers = room.players.filter((player) => player.isActive);
+  if (activePlayers.length <= 1) {
+    room.winner = activePlayers[0]?.name ?? winner.name;
     room.gamePhase = 'ended';
   }
 
@@ -186,6 +187,14 @@ function handleChallenge(room: Room, currentPlayer: Player): void {
     reason,
     roomState: serializeRoom(room),
   });
+
+  if (!loser.isActive) {
+    broadcastRoom(room, {
+      type: 'PLAYER_ELIMINATED',
+      playerName: loser.name,
+      roomState: serializeRoom(room),
+    });
+  }
 
   if (room.gamePhase === 'ended') {
     broadcastRoom(room, {
@@ -242,7 +251,7 @@ function handleMessage(socket: WebSocket, raw: string): void {
     const playerId = randomUUID();
     const room: Room = {
       code: roomCode,
-      players: [{ id: playerId, name: message.playerName, lives: 3, isActive: true, isCurrentPlayer: true }],
+      players: [{ id: playerId, name: message.playerName, lives: 3, isActive: true, isCurrentPlayer: true, ready: false }],
       currentPlayerIndex: 0,
       gamePhase: 'waiting',
       currentAnnouncement: null,
@@ -280,6 +289,7 @@ function handleMessage(socket: WebSocket, raw: string): void {
       lives: 3,
       isActive: true,
       isCurrentPlayer: false,
+      ready: false,
     };
 
     room.players.push(player);
@@ -311,6 +321,16 @@ function handleMessage(socket: WebSocket, raw: string): void {
       return;
     }
 
+    if (socket !== room.sockets.get(room.players[0].id)) {
+      sendToSocket(socket, { type: 'ERROR', message: 'Somente o anfitrião pode iniciar a partida.' });
+      return;
+    }
+
+    if (room.players.some((player) => !player.ready)) {
+      sendToSocket(socket, { type: 'ERROR', message: 'Todos os jogadores precisam estar prontos.' });
+      return;
+    }
+
     room.gamePhase = 'rolling';
     room.currentPlayerIndex = 0;
     room.players.forEach((player) => { player.isCurrentPlayer = player.id === room.players[room.currentPlayerIndex].id; });
@@ -330,6 +350,32 @@ function handleMessage(socket: WebSocket, raw: string): void {
         });
       }
     }
+    return;
+  }
+
+  if (type === 'TOGGLE_READY') {
+    const room = getRoom(message.roomCode);
+    if (!room) {
+      sendToSocket(socket, { type: 'ERROR', message: 'Sala inexistente.' });
+      return;
+    }
+
+    if (room.gamePhase !== 'waiting') {
+      sendToSocket(socket, { type: 'ERROR', message: 'A sala já iniciou a partida.' });
+      return;
+    }
+
+    const player = room.players.find((entry) => room.sockets.get(entry.id) === socket);
+    if (!player) {
+      sendToSocket(socket, { type: 'ERROR', message: 'Jogador não encontrado na sala.' });
+      return;
+    }
+
+    player.ready = !player.ready;
+    broadcastRoom(room, {
+      type: 'ROOM_UPDATED',
+      roomState: serializeRoom(room),
+    });
     return;
   }
 
