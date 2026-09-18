@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { WebSocketServer, type WebSocket } from 'ws';
+import { formatAnnouncementLabel } from './utils/announcements.js';
 import type { ClientMessage, Player, RoomState, ServerMessage } from './types/index.js';
 
 type RoomPhase = RoomState['gamePhase'];
@@ -154,8 +155,8 @@ function handleChallenge(room: Room, currentPlayer: Player): void {
   const dice1 = room.diceResult[0];
   const dice2 = room.diceResult[1];
   const reason = isAnnouncementTruth(room.currentAnnouncement, dice1, dice2)
-    ? `O anúncio "${room.currentAnnouncement}" era verdadeiro. ${currentPlayer.name} perdeu.`
-    : `O anúncio "${room.currentAnnouncement}" era falso. ${announcer.name} perdeu.`;
+    ? `O anúncio "${formatAnnouncementLabel(room.currentAnnouncement)}" era verdadeiro. ${currentPlayer.name} perdeu.`
+    : `O anúncio "${formatAnnouncementLabel(room.currentAnnouncement)}" era falso. ${announcer.name} perdeu.`;
 
   const loser = isAnnouncementTruth(room.currentAnnouncement, dice1, dice2)
     ? currentPlayer

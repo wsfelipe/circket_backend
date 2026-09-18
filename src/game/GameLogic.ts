@@ -1,4 +1,5 @@
 import { PlayType, ValidationResult } from '../types/index.js';
+import { formatAnnouncementLabel } from '../utils/announcements.js';
 
 export class GameLogic {
   /**
@@ -129,8 +130,8 @@ export class GameLogic {
         loserLivesLost: 2,
         wasTruth,
         reason: wasTruth
-          ? 'Cricket era verdade! Quem desmentiu perde 2 vidas'
-          : 'Cricket era mentira! Quem mentiu perde 2 vidas',
+          ? `O anúncio "${formatAnnouncementLabel(announcement)}" era verdade! Quem desmentiu perde 2 vidas`
+          : `O anúncio "${formatAnnouncementLabel(announcement)}" era mentira! Quem mentiu perde 2 vidas`,
       };
     }
 
@@ -139,8 +140,8 @@ export class GameLogic {
       loserLivesLost: 1,
       wasTruth,
       reason: wasTruth
-        ? 'O anúncio era verdade! Quem desmentiu perde 1 vida'
-        : 'Era mentira! Quem mentiu perde 1 vida',
+        ? `O anúncio "${formatAnnouncementLabel(announcement)}" era verdade! Quem desmentiu perde 1 vida`
+        : `O anúncio "${formatAnnouncementLabel(announcement)}" era mentira! Quem mentiu perde 1 vida`,
     };
   }
 
@@ -181,7 +182,7 @@ export class GameLogic {
     if (!playType) {
       return {
         isValid: false,
-        message: `Anúncio inválido: ${announcementStr}. Use: 4-11, pair_1-pair_6, cricket`,
+        message: `Anúncio inválido: ${formatAnnouncementLabel(announcementStr)}. Use: 4-11, pair_1-pair_6, cricket`,
       };
     }
 

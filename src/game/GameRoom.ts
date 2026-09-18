@@ -1,4 +1,5 @@
 import { PlayType, ValidationResult } from '../types/index.js';
+import { formatAnnouncementLabel } from '../utils/announcements.js';
 
 export class GameLogic {
   /**
@@ -181,7 +182,7 @@ export class GameLogic {
     if (!playType) {
       return {
         isValid: false,
-        message: `Anúncio inválido: ${announcementStr}. Use: 4-11, pair_1-pair_6, cricket`,
+        message: `Anúncio inválido: ${formatAnnouncementLabel(announcementStr)}. Use: 4-11, pair_1-pair_6, cricket`,
       };
     }
 
